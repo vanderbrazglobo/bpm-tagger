@@ -1,6 +1,57 @@
+## 🎵 Sobre BPM e Musical Key
+
+O projeto realiza análise automática de arquivos de áudio para identificar informações musicais importantes como:
+
+- **BPM (Beats Per Minute)** → velocidade da música
+- **Key (Tom musical)** → tonalidade principal da faixa
+
+### Exemplos
+
+| Música | BPM | Key |
+|---|---|---|
+| Track A | 128 | A Minor |
+| Track B | 95 | C Major |
+
+### O que é BPM?
+
+BPM representa a quantidade de batidas por minuto da música.
+
+Exemplos:
+- 70–90 BPM → Hip Hop / Lo-fi
+- 120–130 BPM → House / EDM
+- 160+ BPM → Drum and Bass
+
+### O que é Key?
+
+Key (tom musical) define o centro tonal da música, indicando quais notas e acordes predominam na composição.
+
+Exemplos:
+- `C Major`
+- `A Minor`
+- `F# Minor`
+
+Essas informações são amplamente utilizadas por:
+- DJs para harmonic mixing
+- produtores musicais
+- organização automática de bibliotecas
+- sistemas de recomendação musical
+
+### Recursos do projeto
+
+- Detecção automática de BPM
+- Identificação de tonalidade musical (Key)
+- Renomeação automática de arquivos
+- Organização inteligente da biblioteca musical
+- Compatível com workflows de DJs e produtores
+
+### Exemplo de saída
+
+```bash
+Artist - Track Name [128 BPM - A Minor].mp3.
+
+
 # 🎵 BPM Tagger
 
-Detecta BPM de arquivos MP3 e renomeia adicionando o BPM ao nome.
 Disponível em dois modos: script de terminal e app desktop com interface gráfica.
 
 ## Requisitos
