@@ -3,3 +3,4 @@ mutagen
 soundfile
 audioread
 cffi
+customtkinter
