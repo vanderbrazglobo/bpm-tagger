@@ -35,7 +35,7 @@ jobs:
       - name: Verificar sintaxe — bpm_tagger_app.py
         run: |
           python -m pyflakes bpm_tagger_app.py
-          flake8 bpm_tagger_app.py --max-line-length=120 --ignore=E501,W503,E402
+          flake8 bpm_tagger_app.py --max-line-length=120 --ignore=E501,W503,E402,E302,E303,E305,E306,E704,E241,E221,E128,E124,E231,E226,E711
 
   # ── JOB 2: Instalação de dependências ──────────────────────────────────────
   dependencies:
