@@ -1,0 +1,89 @@
+name: CD — Release Automático
+
+on:
+  push:
+    tags:
+      - "v*.*.*"   # dispara em tags como v1.0.0, v1.2.3, etc.
+
+jobs:
+  release:
+    name: 🚀 Criar Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # necessário para pegar o histórico completo
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependências
+        run: |
+          pip install --upgrade pip
+          pip install mutagen soundfile cffi audioread
+          pip install --no-deps librosa
+          pip install audioread decorator joblib numpy packaging pooch \
+                      scikit-learn scipy soxr typing_extensions lazy_loader msgpack
+
+      - name: Verificar versão da tag
+        id: tag_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Gerar changelog automático
+        id: changelog
+        run: |
+          # Pega os commits desde a última tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            COMMITS=$(git log --oneline --pretty=format:"- %s" | head -20)
+          else
+            COMMITS=$(git log ${PREV_TAG}..HEAD --oneline --pretty=format:"- %s")
+          fi
+          echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Empacotar arquivos da release
+        run: |
+          mkdir -p release_package
+          cp bpm_tagger.py release_package/
+          cp bpm_tagger_app.py release_package/
+          cp requirements.txt release_package/
+          cp README.md release_package/
+          cp "BPM Tagger.command" release_package/ 2>/dev/null || true
+          cd release_package
+          zip -r ../bpm-tagger-${{ steps.tag_version.outputs.VERSION }}.zip .
+
+      - name: Criar Release no GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag_version.outputs.VERSION }}
+          name: "🎵 BPM Tagger ${{ steps.tag_version.outputs.VERSION }}"
+          body: |
+            ## 🎵 BPM Tagger ${{ steps.tag_version.outputs.VERSION }}
+
+            ### O que há de novo
+            ${{ steps.changelog.outputs.COMMITS }}
+
+            ---
+
+            ### 📦 Instalação
+
+            1. Baixe o arquivo `bpm-tagger-${{ steps.tag_version.outputs.VERSION }}.zip`
+            2. Descompacte em qualquer pasta
+            3. Siga as instruções do `README.md`
+
+            ### Requisitos
+            - Python 3.11 ([python.org](https://www.python.org/downloads/release/python-31110/))
+            - macOS ou Linux Ubuntu
+
+          files: |
+            bpm-tagger-${{ steps.tag_version.outputs.VERSION }}.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

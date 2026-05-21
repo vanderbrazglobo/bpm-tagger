@@ -1,0 +1,121 @@
+name: CI — Lint, Testes e Dependências
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # permite rodar manualmente no GitHub
+
+jobs:
+  # ── JOB 1: Lint e qualidade de código ──────────────────────────────────────
+  lint:
+    name: 🔍 Lint (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar ferramentas de lint
+        run: |
+          pip install flake8 pyflakes
+
+      - name: Verificar sintaxe — bpm_tagger.py
+        run: |
+          python -m pyflakes bpm_tagger.py
+          flake8 bpm_tagger.py --max-line-length=120 --ignore=E501,W503
+
+      - name: Verificar sintaxe — bpm_tagger_app.py
+        run: |
+          python -m pyflakes bpm_tagger_app.py
+          flake8 bpm_tagger_app.py --max-line-length=120 --ignore=E501,W503,E402
+
+  # ── JOB 2: Instalação de dependências ──────────────────────────────────────
+  dependencies:
+    name: 📦 Dependências (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependências do sistema (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg libsndfile1 python3-tk
+
+      - name: Instalar dependências do sistema (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install ffmpeg
+
+      - name: Instalar dependências Python
+        run: |
+          pip install --upgrade pip
+          pip install mutagen soundfile cffi audioread
+          pip install --no-deps librosa
+          pip install audioread decorator joblib numpy packaging pooch \
+                      scikit-learn scipy soxr typing_extensions lazy_loader msgpack
+
+      - name: Verificar imports principais
+        run: |
+          python -c "import librosa; print('librosa OK:', librosa.__version__)"
+          python -c "import mutagen; print('mutagen OK:', mutagen.version_string)"
+          python -c "import soundfile; print('soundfile OK:', soundfile.__version__)"
+
+  # ── JOB 3: Testes funcionais ────────────────────────────────────────────────
+  test:
+    name: 🧪 Testes (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: dependencies  # só roda se as dependências instalarem OK
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependências do sistema (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg libsndfile1
+
+      - name: Instalar dependências do sistema (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install ffmpeg
+
+      - name: Instalar dependências Python
+        run: |
+          pip install --upgrade pip
+          pip install mutagen soundfile cffi audioread pytest
+          pip install --no-deps librosa
+          pip install audioread decorator joblib numpy packaging pooch \
+                      scikit-learn scipy soxr typing_extensions lazy_loader msgpack
+
+      - name: Rodar testes
+        run: |
+          pytest tests/ -v --tb=short

@@ -4,3 +4,4 @@ soundfile
 audioread
 cffi
 customtkinter
+pytest
