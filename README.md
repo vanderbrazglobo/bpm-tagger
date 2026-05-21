@@ -57,9 +57,9 @@ Disponível em dois modos: script de terminal e app desktop com interface gráfi
 ## Requisitos
 
 - Python 3.11 (python.org — não use o Homebrew)
-- macOS
+- macOS ou Linux Ubuntu
 
-## Instalação
+## Instalação macOS
 
 ### 1. Instale o Python 3.11
 Baixe em: https://www.python.org/downloads/release/python-31110/
@@ -99,3 +99,63 @@ pip install audioread decorator joblib numpy packaging pooch scikit-learn scipy 
 
 O bpm_tagger usa Python 3.11 por compatibilidade com o librosa.
 Usar um ambiente virtual garante que nenhum outro projeto Python no seu Mac seja afetado.
+
+
+
+### Install no Linux Ubuntu
+
+## 1- Baixar o Python - https://www.python.org/downloads/release/python-3110rc2/
+
+## 2- Descompactar e entrar na pasta  e rodar os comando abaixo
+
+sudo apt update
+sudo apt install -y \
+build-essential \
+zlib1g-dev \
+libncurses5-dev \
+libgdbm-dev \
+libnss3-dev \
+libssl-dev \
+libreadline-dev \
+libffi-dev \
+libsqlite3-dev \
+wget \
+libbz2-dev \
+tk-dev \
+xz-utils \
+liblzma-dev \
+uuid-dev
+
+## 3- ./configure --enable-optimizations
+## 4- make -j$(nproc)
+## 5- sudo make altinstall
+## 6- python3.11 --version
+
+## 6.1- Verifique primeiro:
+    which python3
+    python3 --version
+
+## 6.2- Depois crie o venv:
+    python3 -m venv ~/envs/bpm
+
+## 7- Ative o ambiente
+source ~/envs/bpm/bin/activate
+O terminal ficará parecido com:
+(bpm) user@ubuntu:~$
+
+## 8- Verifique se o Python existe
+ls ~/envs/bpm/bin/
+
+Você deve ver:
+python
+python3
+pip
+activate
+
+## 9- Instale dependências Dentro do projeto:
+cd ~/Downloads/bpm-tagger
+pip install -r requirements.txt
+
+## 10- Execute corretamente Com o ambiente ativado:
+python bpm_tagger_app.py
+
