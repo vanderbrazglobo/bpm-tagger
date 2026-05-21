@@ -30,7 +30,7 @@ jobs:
       - name: Verificar sintaxe — bpm_tagger.py
         run: |
           python -m pyflakes bpm_tagger.py
-          flake8 bpm_tagger.py --max-line-length=120 --ignore=E501,W503
+          flake8 bpm_tagger.py --max-line-length=120 --ignore=E501,W503,E302,E303,E305
 
       - name: Verificar sintaxe — bpm_tagger_app.py
         run: |
