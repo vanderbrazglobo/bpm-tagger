@@ -385,7 +385,7 @@ class BPMTaggerApp(ctk.CTk):
         files = collect_files(folder, formats, do_sub)
 
         if not files:
-            self._log(f"  Nenhum arquivo encontrado nos formatos selecionados.", "error")
+            self._log("  Nenhum arquivo encontrado nos formatos selecionados.", "error")
             self._finish(0, 0, 0, dry, folder, do_csv)
             return
 
