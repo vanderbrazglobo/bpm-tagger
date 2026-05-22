@@ -61,6 +61,14 @@ SUPPORTED_FORMATS = {
 KEY_NAMES = ["C", "C#", "D", "D#", "E", "F",
              "F#", "G", "G#", "A", "A#", "B"]
 
+# Níveis de energia baseados em RMS
+ENERGY_LEVELS = [
+    (0.00, 0.02, "Low"),
+    (0.02, 0.06, "Mid"),
+    (0.06, 0.12, "High"),
+    (0.12, 9.99, "Peak"),
+]
+
 # Perfis de Krumhansl-Schmuckler para detecção de Major/Minor
 KS_MAJOR = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09,
             2.52, 5.19, 2.39, 3.66, 2.29, 2.88]
@@ -76,7 +84,7 @@ def safe_filename(name: str) -> str:
 def already_processed(stem: str) -> bool:
     return bool(re.search(r'[_\[\s]?\d{2,3}BPM', stem, re.IGNORECASE))
 
-def detect_bpm_and_key(path: Path, detect_key: bool = False):
+def detect_bpm_and_key(path: Path, detect_key: bool = False, detect_energy: bool = False):
     import librosa
     import numpy as np
     y, sr = librosa.load(str(path), sr=None, mono=True, duration=60)
@@ -107,7 +115,17 @@ def detect_bpm_and_key(path: Path, detect_key: bool = False):
                 best_mode = "min"
         key = f"{best_key}{best_mode}"
 
-    return bpm, key
+    energy = None
+    if detect_energy:
+        rms = float(np.sqrt(np.mean(y ** 2)))
+        for low, high, label in ENERGY_LEVELS:
+            if low <= rms < high:
+                energy = label
+                break
+        if energy is None:
+            energy = "Peak"
+
+    return bpm, key, energy
 
 def copy_tags(src: Path, dst: Path):
     try:
@@ -149,6 +167,7 @@ class BPMTaggerApp(ctk.CTk):
         self.folder_path = tk.StringVar()
         self.dry_run      = tk.BooleanVar(value=True)
         self.opt_key      = tk.BooleanVar(value=False)
+        self.opt_energy   = tk.BooleanVar(value=False)
         self.opt_sub      = tk.BooleanVar(value=False)
         self.opt_csv      = tk.BooleanVar(value=False)
         self.fmt_mp3      = tk.BooleanVar(value=True)
@@ -220,7 +239,8 @@ class BPMTaggerApp(ctk.CTk):
 
         switches = [
             (self.dry_run,  "🔍  Modo simulação (dry-run)",        "#f59e0b", "#d97706"),
-            (self.opt_key,  "🎼  Detectar tom musical (key)",       "#a78bfa", "#7c3aed"),
+            (self.opt_key,    "🎼  Detectar tom musical (key)",       "#a78bfa", "#7c3aed"),
+            (self.opt_energy, "🔋  Detectar energia/intensidade",       "#34d399", "#059669"),
             (self.opt_sub,  "📁  Processar subpastas",              "#34d399", "#059669"),
             (self.opt_csv,  "📊  Exportar relatório CSV",           "#60a5fa", "#2563eb"),
         ]
@@ -332,7 +352,8 @@ class BPMTaggerApp(ctk.CTk):
             "error": "#f87171",
             "skip":  "#60a5fa",
             "bpm":   "#fbbf24",
-            "key":   "#c084fc",
+            "key":    "#c084fc",
+            "energy": "#34d399",
             "info":  "#c8d8e8",
             "sep":   "#2d3a4a",
             "head":  "#818cf8",
@@ -390,6 +411,7 @@ class BPMTaggerApp(ctk.CTk):
         folder      = Path(folder_str)
         dry         = self.dry_run.get()
         do_key      = self.opt_key.get()
+        do_energy   = self.opt_energy.get()
         do_sub      = self.opt_sub.get()
         do_csv      = self.opt_csv.get()
         formats     = self._get_formats()
@@ -399,7 +421,7 @@ class BPMTaggerApp(ctk.CTk):
         self._log(f"  Pasta    : {folder}", "head")
         self._log(f"  Modo     : {mode}", "head")
         self._log(f"  Formatos : {', '.join(sorted(formats)).upper()}", "head")
-        self._log(f"  Tom      : {'Sim' if do_key else 'Não'}  |  "
+        self._log(f"  Tom      : {'Sim' if do_key else 'Não'}  |  Energia: {'Sim' if do_energy else 'Não'}  |  "
                   f"Subpastas: {'Sim' if do_sub else 'Não'}  |  "
                   f"CSV: {'Sim' if do_csv else 'Não'}", "head")
         self._log("━" * 64, "sep")
@@ -429,7 +451,7 @@ class BPMTaggerApp(ctk.CTk):
             self.after(0, lambda n=f.name: self._set_status(f"Analisando: {n}"))
 
             try:
-                bpm, key = detect_bpm_and_key(f, detect_key=do_key)
+                bpm, key, energy = detect_bpm_and_key(f, detect_key=do_key, detect_energy=do_energy)
             except Exception as e:
                 self._log(f"   ✗ Erro: {e}", "error")
                 error += 1
@@ -438,11 +460,15 @@ class BPMTaggerApp(ctk.CTk):
             self._log(f"   BPM: {bpm}", "bpm")
             if do_key and key:
                 self._log(f"   Tom: {key}", "key")
+            if do_energy and energy:
+                self._log(f"   Energia: {energy}", "energy")
 
             # Montar novo nome
             suffix = f"_{bpm}BPM"
             if do_key and key:
                 suffix += f"_{key}"
+            if do_energy and energy:
+                suffix += f"_{energy}"
             new_stem = safe_filename(f"{stem}{suffix}")
             new_path = f.parent / (new_stem + ext)
 
@@ -458,6 +484,7 @@ class BPMTaggerApp(ctk.CTk):
                     "arquivo_novo": new_path.name if not dry else f"{new_stem}{ext} [simulação]",
                     "bpm": bpm,
                     "tom": key or "",
+                    "energia": energy or "",
                     "formato": ext.lstrip(".").upper(),
                     "pasta": str(f.parent),
                 })
@@ -510,7 +537,7 @@ class BPMTaggerApp(ctk.CTk):
             try:
                 with open(chosen, "w", newline="", encoding="utf-8") as fh:
                     writer = csv.DictWriter(fh, fieldnames=[
-                        "arquivo_original", "arquivo_novo", "bpm", "tom", "formato", "pasta"
+                        "arquivo_original", "arquivo_novo", "bpm", "tom", "energia", "formato", "pasta"
                     ])
                     writer.writeheader()
                     writer.writerows(self._csv_rows)
