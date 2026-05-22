@@ -1,5 +1,11 @@
 # 🎵 BPM Tagger
 
+[![CI](https://github.com/vanderbrazglobo/bpm-tagger/actions/workflows/ci.yml/badge.svg)](https://github.com/vanderbrazglobo/bpm-tagger/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-31110/)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey.svg)]()
+
+
 > Detecta BPM e tom musical de arquivos de áudio e renomeia automaticamente.
 
 Disponível em dois modos: **app desktop com interface gráfica** e **script de terminal**.
