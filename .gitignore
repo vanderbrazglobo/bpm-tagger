@@ -11,3 +11,8 @@ build/
 *.dmg
 build_dmg/
 .DS_Store
+build_dmg/
+*.dmg
+BPM-Tagger-*.dmg
+__pycache__/
+*.pyc
