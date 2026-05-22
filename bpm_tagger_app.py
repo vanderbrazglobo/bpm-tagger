@@ -149,6 +149,7 @@ class BPMTaggerApp(ctk.CTk):
         self.folder_path = tk.StringVar()
         self.dry_run      = tk.BooleanVar(value=True)
         self.opt_key      = tk.BooleanVar(value=False)
+        self.opt_energy   = tk.BooleanVar(value=False)
         self.opt_sub      = tk.BooleanVar(value=False)
         self.opt_csv      = tk.BooleanVar(value=False)
         self.fmt_mp3      = tk.BooleanVar(value=True)
@@ -220,7 +221,8 @@ class BPMTaggerApp(ctk.CTk):
 
         switches = [
             (self.dry_run,  "🔍  Modo simulação (dry-run)",        "#f59e0b", "#d97706"),
-            (self.opt_key,  "🎼  Detectar tom musical (key)",       "#a78bfa", "#7c3aed"),
+            (self.opt_key,    "🎼  Detectar tom musical (key)",       "#a78bfa", "#7c3aed"),
+            (self.opt_energy, "🔋  Detectar energia/intensidade",       "#34d399", "#059669"),
             (self.opt_sub,  "📁  Processar subpastas",              "#34d399", "#059669"),
             (self.opt_csv,  "📊  Exportar relatório CSV",           "#60a5fa", "#2563eb"),
         ]
@@ -270,7 +272,7 @@ class BPMTaggerApp(ctk.CTk):
         # ── Log ──────────────────────────────────────────────────────────────
         log_frame = ctk.CTkFrame(self, fg_color=("#1e1e2e","#16162a"), corner_radius=12)
         log_frame.grid(row=3, column=0, sticky="nsew", padx=20, pady=(0,8))
-        log_frame.grid_rowconfigure(1, weight=1)
+        log_frame.grid_rowconfigure(2, weight=1)
         log_frame.grid_columnconfigure(0, weight=1)
 
         log_hdr = ctk.CTkFrame(log_frame, fg_color="transparent")
@@ -286,13 +288,31 @@ class BPMTaggerApp(ctk.CTk):
             command=self._clear_log
         ).grid(row=0, column=1, sticky="e")
 
+        # Barra de progresso
+        self.progress_frame = ctk.CTkFrame(log_frame, fg_color="transparent")
+        self.progress_frame.grid(row=1, column=0, sticky="ew", padx=16, pady=(0, 6))
+        self.progress_frame.grid_columnconfigure(0, weight=1)
+
+        self.progress_bar = ctk.CTkProgressBar(self.progress_frame,
+            height=8, corner_radius=4,
+            fg_color=("#2d3a4a", "#2d3a4a"),
+            progress_color="#2563eb"
+        )
+        self.progress_bar.grid(row=0, column=0, sticky="ew", pady=(0, 4))
+        self.progress_bar.set(0)
+
+        self.progress_label = ctk.CTkLabel(self.progress_frame,
+            text="", font=ctk.CTkFont(size=11), text_color="#4a5a6a"
+        )
+        self.progress_label.grid(row=1, column=0, sticky="w")
+
         self.log_box = ctk.CTkTextbox(log_frame,
             font=ctk.CTkFont(family="Courier New", size=12),
             fg_color=("#12121f","#12121f"), text_color="#c8d8e8",
             border_color="#2d3a4a", border_width=1,
             wrap="word", state="disabled"
         )
-        self.log_box.grid(row=1, column=0, sticky="nsew", padx=16, pady=(0,12))
+        self.log_box.grid(row=2, column=0, sticky="nsew", padx=16, pady=(0,12))
 
         # Status bar
         self.status_bar = ctk.CTkFrame(self, fg_color=("#12121f","#0a0a14"), height=32, corner_radius=0)
@@ -332,7 +352,8 @@ class BPMTaggerApp(ctk.CTk):
             "error": "#f87171",
             "skip":  "#60a5fa",
             "bpm":   "#fbbf24",
-            "key":   "#c084fc",
+            "key":    "#c084fc",
+            "energy": "#34d399",
             "info":  "#c8d8e8",
             "sep":   "#2d3a4a",
             "head":  "#818cf8",
@@ -368,6 +389,10 @@ class BPMTaggerApp(ctk.CTk):
         self.is_running = True
         self._csv_rows = []
         self.run_btn.configure(state="disabled", text="⏳  Processando...")
+        self.after(0, lambda: self.progress_bar.set(0))
+        self.after(0, lambda: self.progress_label.configure(text=""))
+        self.after(0, lambda: self.progress_bar.set(0))
+        self.after(0, lambda: self.progress_label.configure(text=""))
         self._clear_log()
         threading.Thread(target=self._process, args=(folder,), daemon=True).start()
 
@@ -390,6 +415,7 @@ class BPMTaggerApp(ctk.CTk):
         folder      = Path(folder_str)
         dry         = self.dry_run.get()
         do_key      = self.opt_key.get()
+        do_energy   = self.opt_energy.get()
         do_sub      = self.opt_sub.get()
         do_csv      = self.opt_csv.get()
         formats     = self._get_formats()
@@ -399,7 +425,7 @@ class BPMTaggerApp(ctk.CTk):
         self._log(f"  Pasta    : {folder}", "head")
         self._log(f"  Modo     : {mode}", "head")
         self._log(f"  Formatos : {', '.join(sorted(formats)).upper()}", "head")
-        self._log(f"  Tom      : {'Sim' if do_key else 'Não'}  |  "
+        self._log(f"  Tom      : {'Sim' if do_key else 'Não'}  |  Energia: {'Sim' if do_energy else 'Não'}  |  "
                   f"Subpastas: {'Sim' if do_sub else 'Não'}  |  "
                   f"CSV: {'Sim' if do_csv else 'Não'}", "head")
         self._log("━" * 64, "sep")
@@ -429,20 +455,34 @@ class BPMTaggerApp(ctk.CTk):
             self.after(0, lambda n=f.name: self._set_status(f"Analisando: {n}"))
 
             try:
-                bpm, key = detect_bpm_and_key(f, detect_key=do_key)
+                bpm, key, energy = detect_bpm_and_key(f, detect_key=do_key, detect_energy=do_energy)
             except Exception as e:
                 self._log(f"   ✗ Erro: {e}", "error")
                 error += 1
                 continue
 
             self._log(f"   BPM: {bpm}", "bpm")
+            idx = files.index(f) + 1
+            progress = idx / len(files)
+            self.after(0, lambda v=progress: self.progress_bar.set(v))
+            self.after(0, lambda i=idx, t=len(files): self.progress_label.configure(text=f"Processando {i} de {t} arquivos..."))
+            # Atualiza barra de progresso
+            idx = files.index(f) + 1
+            progress = idx / len(files)
+            self.after(0, lambda v=progress: self.progress_bar.set(v))
+            self.after(0, lambda i=idx, t=len(files): self.progress_label.configure(
+                text=f"Processando {i} de {t} arquivos..."))
             if do_key and key:
                 self._log(f"   Tom: {key}", "key")
+            if do_energy and energy:
+                self._log(f"   Energia: {energy}", "energy")
 
             # Montar novo nome
             suffix = f"_{bpm}BPM"
             if do_key and key:
                 suffix += f"_{key}"
+            if do_energy and energy:
+                suffix += f"_{energy}"
             new_stem = safe_filename(f"{stem}{suffix}")
             new_path = f.parent / (new_stem + ext)
 
@@ -458,6 +498,7 @@ class BPMTaggerApp(ctk.CTk):
                     "arquivo_novo": new_path.name if not dry else f"{new_stem}{ext} [simulação]",
                     "bpm": bpm,
                     "tom": key or "",
+                    "energia": energy or "",
                     "formato": ext.lstrip(".").upper(),
                     "pasta": str(f.parent),
                 })
@@ -490,6 +531,9 @@ class BPMTaggerApp(ctk.CTk):
         self.after(0, lambda: self.run_btn.configure(state="normal", text="▶  Iniciar Varredura"))
         self.after(0, lambda: self._set_status("Pronto."))
         self.after(0, lambda: self.stats_label.configure(text=f"✔ {ok}  ⏭ {skip}  ✗ {error}"))
+        self.after(0, lambda: self.progress_bar.set(1))
+        self.after(0, lambda o=ok, s=skip, e=error: self.progress_label.configure(
+            text=f"✔ {o} processados  ⏭ {s} ignorados  ✗ {e} erros"))
         self.is_running = False
 
         # Exportar CSV — abre diálogo na thread principal após liberar botão
@@ -510,7 +554,7 @@ class BPMTaggerApp(ctk.CTk):
             try:
                 with open(chosen, "w", newline="", encoding="utf-8") as fh:
                     writer = csv.DictWriter(fh, fieldnames=[
-                        "arquivo_original", "arquivo_novo", "bpm", "tom", "formato", "pasta"
+                        "arquivo_original", "arquivo_novo", "bpm", "tom", "energia", "formato", "pasta"
                     ])
                     writer.writeheader()
                     writer.writerows(self._csv_rows)
