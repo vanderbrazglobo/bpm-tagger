@@ -61,6 +61,12 @@ SUPPORTED_FORMATS = {
 KEY_NAMES = ["C", "C#", "D", "D#", "E", "F",
              "F#", "G", "G#", "A", "A#", "B"]
 
+# Perfis de Krumhansl-Schmuckler para detecção de Major/Minor
+KS_MAJOR = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09,
+            2.52, 5.19, 2.39, 3.66, 2.29, 2.88]
+KS_MINOR = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53,
+            2.54, 4.75, 3.98, 2.69, 3.34, 3.17]
+
 # ── Helpers de áudio ─────────────────────────────────────────────────────────
 def safe_filename(name: str) -> str:
     name = name.replace("/", "-").replace("\x00", "")
@@ -82,8 +88,24 @@ def detect_bpm_and_key(path: Path, detect_key: bool = False):
     if detect_key:
         chroma = librosa.feature.chroma_cqt(y=y, sr=sr)
         chroma_mean = np.mean(chroma, axis=1)
-        key_idx = int(np.argmax(chroma_mean))
-        key = KEY_NAMES[key_idx]
+
+        # Correlação com perfis Major e Minor para cada tonalidade
+        best_score = -np.inf
+        best_key = "C"
+        best_mode = "maj"
+        for i in range(12):
+            rotated = np.roll(chroma_mean, -i)
+            score_maj = float(np.corrcoef(rotated, KS_MAJOR)[0, 1])
+            score_min = float(np.corrcoef(rotated, KS_MINOR)[0, 1])
+            if score_maj > best_score:
+                best_score = score_maj
+                best_key = KEY_NAMES[i]
+                best_mode = "maj"
+            if score_min > best_score:
+                best_score = score_min
+                best_key = KEY_NAMES[i]
+                best_mode = "min"
+        key = f"{best_key}{best_mode}"
 
     return bpm, key
 
