@@ -61,6 +61,14 @@ SUPPORTED_FORMATS = {
 KEY_NAMES = ["C", "C#", "D", "D#", "E", "F",
              "F#", "G", "G#", "A", "A#", "B"]
 
+# Níveis de energia baseados em RMS
+ENERGY_LEVELS = [
+    (0.00, 0.02, "Low"),
+    (0.02, 0.06, "Mid"),
+    (0.06, 0.12, "High"),
+    (0.12, 9.99, "Peak"),
+]
+
 # Perfis de Krumhansl-Schmuckler para detecção de Major/Minor
 KS_MAJOR = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09,
             2.52, 5.19, 2.39, 3.66, 2.29, 2.88]
@@ -76,7 +84,7 @@ def safe_filename(name: str) -> str:
 def already_processed(stem: str) -> bool:
     return bool(re.search(r'[_\[\s]?\d{2,3}BPM', stem, re.IGNORECASE))
 
-def detect_bpm_and_key(path: Path, detect_key: bool = False):
+def detect_bpm_and_key(path: Path, detect_key: bool = False, detect_energy: bool = False):
     import librosa
     import numpy as np
     y, sr = librosa.load(str(path), sr=None, mono=True, duration=60)
@@ -107,7 +115,17 @@ def detect_bpm_and_key(path: Path, detect_key: bool = False):
                 best_mode = "min"
         key = f"{best_key}{best_mode}"
 
-    return bpm, key
+    energy = None
+    if detect_energy:
+        rms = float(np.sqrt(np.mean(y ** 2)))
+        for low, high, label in ENERGY_LEVELS:
+            if low <= rms < high:
+                energy = label
+                break
+        if energy is None:
+            energy = "Peak"
+
+    return bpm, key, energy
 
 def copy_tags(src: Path, dst: Path):
     try:
