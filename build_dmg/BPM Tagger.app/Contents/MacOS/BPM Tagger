@@ -1,8 +1,0 @@
-#!/bin/bash
-DIR="$(cd "$(dirname "$0")" && pwd)"
-PYTHON=$(find ~/envs/bpm/bin -name "python3.11" 2>/dev/null | head -1)
-if [ -z "$PYTHON" ]; then
-    osascript -e 'display alert "Python não encontrado" message "Instale o ambiente virtual conforme o README." as critical'
-    exit 1
-fi
-exec "$PYTHON" "${DIR}/bpm_tagger_app.py"
