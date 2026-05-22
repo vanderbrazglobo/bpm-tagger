@@ -1,7 +1,10 @@
 # 🎵 BPM Tagger
 
-Detecta BPM e tom musical de arquivos de áudio e renomeia automaticamente.
-Disponível em dois modos: app desktop com interface gráfica e script de terminal.
+> Detecta BPM e tom musical de arquivos de áudio e renomeia automaticamente.
+
+Disponível em dois modos: **app desktop com interface gráfica** e **script de terminal**.
+
+---
 
 ## 📸 Screenshots
 
@@ -11,54 +14,129 @@ Disponível em dois modos: app desktop com interface gráfica e script de termin
 ### Relatório CSV gerado
 ![Relatório CSV](assets/csv_screenshot.png)
 
+---
+
 ## 📦 Download
 
-**[⬇️ Baixar bpm-tagger-v1.0.0.zip](https://github.com/vanderbrazglobo/bpm-tagger/releases/download/v1.0.0/bpm-tagger-v1.0.0.zip)**
+| Plataforma | Arquivo | Tamanho |
+|---|---|---|
+| macOS (instalador) | [⬇️ BPM-Tagger-1.4.2.dmg](https://github.com/vanderbrazglobo/bpm-tagger/releases/download/v1.4.2/BPM-Tagger-1.4.2.dmg) | 115 KB |
+| macOS / Linux (zip) | [⬇️ bpm-tagger-v1.4.2.zip](https://github.com/vanderbrazglobo/bpm-tagger/releases/download/v1.4.2/bpm-tagger-v1.4.2.zip) | 11 KB |
 
-Ou acesse: [Releases](https://github.com/vanderbrazglobo/bpm-tagger/releases)
+Ou acesse todas as versões: [Releases](https://github.com/vanderbrazglobo/bpm-tagger/releases)
 
-## Requisitos
+---
 
-- Python 3.11 (python.org — não use o Homebrew)
-- macOS ou Linux Ubuntu
+## ✅ Requisitos
 
-## Instalação macOS
+- Python 3.11 — instale em [python.org](https://www.python.org/downloads/release/python-31110/) (não use o Homebrew no macOS)
+- macOS (qualquer versão) ou Linux Ubuntu 20.04+
 
-### 1. Instale o Python 3.11
-Baixe em: https://www.python.org/downloads/release/python-31110/
-Use o instalador: macOS 64-bit universal2 installer
+---
 
-### 2. Crie o ambiente virtual
-```
+## 🚀 Instalação
+
+### macOS
+
+**Opção 1 — DMG (recomendado)**
+
+1. Baixe o arquivo `BPM-Tagger-1.4.2.dmg`
+2. Abra o arquivo
+3. Arraste **BPM Tagger** para a pasta **Aplicativos**
+4. Abra e aproveite
+
+**Opção 2 — ZIP**
+
+```bash
+# 1. Crie o ambiente virtual com Python 3.11
 /Library/Frameworks/Python.framework/Versions/3.11/bin/python3.11 -m venv ~/envs/bpm
-```
 
-### 3. Ative o ambiente
-```
+# 2. Ative o ambiente
 source ~/envs/bpm/bin/activate
-```
 
-### 4. Instale as dependências
-```
+# 3. Instale as dependências
 pip install customtkinter mutagen soundfile cffi audioread
 pip install --no-deps librosa
-pip install audioread decorator joblib numpy packaging pooch scikit-learn scipy soxr typing_extensions lazy_loader msgpack
-```
+pip install audioread decorator joblib numpy packaging pooch \
+            scikit-learn scipy soxr typing_extensions lazy_loader msgpack
 
-## Uso
-
-### App com interface gráfica
-```
+# 4. Execute o app
 ~/envs/bpm/bin/python3.11 bpm_tagger_app.py
 ```
 
-### Script de terminal
-```
-~/envs/bpm/bin/python3.11 bpm_tagger.py /caminho/da/pasta --dry-run
-~/envs/bpm/bin/python3.11 bpm_tagger.py /caminho/da/pasta
+> 💡 Após a instalação, você também pode abrir o app com duplo clique no arquivo `BPM Tagger.command`.
+
+### Linux Ubuntu
+
+```bash
+# 1. Instale as dependências do sistema
+sudo apt update
+sudo apt install -y build-essential python3.11 python3.11-tk \
+                    python3.11-venv ffmpeg libsndfile1
+
+# 2. Crie e ative o ambiente virtual
+python3.11 -m venv ~/envs/bpm
+source ~/envs/bpm/bin/activate
+
+# 3. Instale as dependências Python
+pip install customtkinter mutagen soundfile cffi audioread
+pip install --no-deps librosa
+pip install audioread decorator joblib numpy packaging pooch \
+            scikit-learn scipy soxr typing_extensions lazy_loader msgpack
+
+# 4. Execute o app
+python bpm_tagger_app.py
 ```
 
-## Funcionalidades
+---
+
+## 🎧 Como usar
+
+### App com interface gráfica
+
+1. Clique em **Selecionar** para escolher a pasta com os arquivos de áudio
+2. Configure as opções desejadas
+3. Clique em **Iniciar Varredura**
+4. Acompanhe o progresso no log em tempo real
+
+### Script de terminal
+
+```bash
+# Simular sem renomear (recomendado antes de rodar de verdade)
+~/envs/bpm/bin/python3.11 bpm_tagger.py /caminho/da/pasta --dry-run
+
+# Renomear de verdade
+~/envs/bpm/bin/python3.11 bpm_tagger.py /caminho/da/pasta
+
+# Log detalhado
+~/envs/bpm/bin/python3.11 bpm_tagger.py /caminho/da/pasta --debug
+```
+
+### Resultado nos arquivos
+
+```
+Antes:  musica.mp3
+Depois: musica_128BPM.mp3
+
+Com tom ativado:
+Depois: musica_128BPM_Am.mp3
+```
+
+---
+
+## ⚙️ Opções disponíveis
+
+| Opção | O que faz |
+|---|---|
+| **Modo simulação (dry-run)** | Mostra o que seria renomeado sem alterar nenhum arquivo. Sempre use antes de rodar de verdade. |
+| **Detectar tom musical (key)** | Identifica a tonalidade da música (ex: Am, C, F#) e adiciona ao nome. |
+| **Processar subpastas** | Varre todas as pastas recursivamente. |
+| **Exportar relatório CSV** | Salva um relatório com BPM, tom e formato de cada arquivo. |
+| **Formatos (MP3, FLAC, WAV...)** | Selecione quais tipos de arquivo serão processados. |
+
+---
+
+## ✨ Funcionalidades
 
 - 🎵 Detecção automática de BPM
 - 🎼 Identificação de tom musical (key)
@@ -67,8 +145,17 @@ pip install audioread decorator joblib numpy packaging pooch scikit-learn scipy 
 - 🎧 Suporte a MP3, FLAC, WAV, AIFF, OGG, M4A
 - 🔍 Modo simulação (dry-run)
 - 🛡️ Preservação de metadados ID3
+- 🔁 Proteção automática contra duplicação — arquivos já processados são ignorados
 
-## Por que ambiente virtual?
+---
 
-O bpm_tagger usa Python 3.11 por compatibilidade com o librosa.
-Usar um ambiente virtual garante que nenhum outro projeto Python no seu Mac seja afetado.
+## 🤝 Contribuindo
+
+Consulte o guia completo em [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
+## 🔗 Links
+
+- [Releases](https://github.com/vanderbrazglobo/bpm-tagger/releases)
+- [Reportar problema ou sugestão](https://github.com/vanderbrazglobo/bpm-tagger/issues)
