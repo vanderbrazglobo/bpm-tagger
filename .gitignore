@@ -8,3 +8,6 @@ __pycache__/
 dist/
 build/
 *.dmg
+*.dmg
+build_dmg/
+.DS_Store
