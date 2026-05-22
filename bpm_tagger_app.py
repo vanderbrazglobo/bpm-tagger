@@ -290,7 +290,7 @@ class BPMTaggerApp(ctk.CTk):
         # ── Log ──────────────────────────────────────────────────────────────
         log_frame = ctk.CTkFrame(self, fg_color=("#1e1e2e","#16162a"), corner_radius=12)
         log_frame.grid(row=3, column=0, sticky="nsew", padx=20, pady=(0,8))
-        log_frame.grid_rowconfigure(1, weight=1)
+        log_frame.grid_rowconfigure(2, weight=1)
         log_frame.grid_columnconfigure(0, weight=1)
 
         log_hdr = ctk.CTkFrame(log_frame, fg_color="transparent")
@@ -306,13 +306,31 @@ class BPMTaggerApp(ctk.CTk):
             command=self._clear_log
         ).grid(row=0, column=1, sticky="e")
 
+        # Barra de progresso
+        self.progress_frame = ctk.CTkFrame(log_frame, fg_color="transparent")
+        self.progress_frame.grid(row=1, column=0, sticky="ew", padx=16, pady=(0, 6))
+        self.progress_frame.grid_columnconfigure(0, weight=1)
+
+        self.progress_bar = ctk.CTkProgressBar(self.progress_frame,
+            height=8, corner_radius=4,
+            fg_color=("#2d3a4a", "#2d3a4a"),
+            progress_color="#2563eb"
+        )
+        self.progress_bar.grid(row=0, column=0, sticky="ew", pady=(0, 4))
+        self.progress_bar.set(0)
+
+        self.progress_label = ctk.CTkLabel(self.progress_frame,
+            text="", font=ctk.CTkFont(size=11), text_color="#4a5a6a"
+        )
+        self.progress_label.grid(row=1, column=0, sticky="w")
+
         self.log_box = ctk.CTkTextbox(log_frame,
             font=ctk.CTkFont(family="Courier New", size=12),
             fg_color=("#12121f","#12121f"), text_color="#c8d8e8",
             border_color="#2d3a4a", border_width=1,
             wrap="word", state="disabled"
         )
-        self.log_box.grid(row=1, column=0, sticky="nsew", padx=16, pady=(0,12))
+        self.log_box.grid(row=2, column=0, sticky="nsew", padx=16, pady=(0,12))
 
         # Status bar
         self.status_bar = ctk.CTkFrame(self, fg_color=("#12121f","#0a0a14"), height=32, corner_radius=0)
@@ -389,6 +407,10 @@ class BPMTaggerApp(ctk.CTk):
         self.is_running = True
         self._csv_rows = []
         self.run_btn.configure(state="disabled", text="⏳  Processando...")
+        self.after(0, lambda: self.progress_bar.set(0))
+        self.after(0, lambda: self.progress_label.configure(text=""))
+        self.after(0, lambda: self.progress_bar.set(0))
+        self.after(0, lambda: self.progress_label.configure(text=""))
         self._clear_log()
         threading.Thread(target=self._process, args=(folder,), daemon=True).start()
 
@@ -458,6 +480,16 @@ class BPMTaggerApp(ctk.CTk):
                 continue
 
             self._log(f"   BPM: {bpm}", "bpm")
+            idx = files.index(f) + 1
+            progress = idx / len(files)
+            self.after(0, lambda v=progress: self.progress_bar.set(v))
+            self.after(0, lambda i=idx, t=len(files): self.progress_label.configure(text=f"Processando {i} de {t} arquivos..."))
+            # Atualiza barra de progresso
+            idx = files.index(f) + 1
+            progress = idx / len(files)
+            self.after(0, lambda v=progress: self.progress_bar.set(v))
+            self.after(0, lambda i=idx, t=len(files): self.progress_label.configure(
+                text=f"Processando {i} de {t} arquivos..."))
             if do_key and key:
                 self._log(f"   Tom: {key}", "key")
             if do_energy and energy:
@@ -517,6 +549,9 @@ class BPMTaggerApp(ctk.CTk):
         self.after(0, lambda: self.run_btn.configure(state="normal", text="▶  Iniciar Varredura"))
         self.after(0, lambda: self._set_status("Pronto."))
         self.after(0, lambda: self.stats_label.configure(text=f"✔ {ok}  ⏭ {skip}  ✗ {error}"))
+        self.after(0, lambda: self.progress_bar.set(1))
+        self.after(0, lambda o=ok, s=skip, e=error: self.progress_label.configure(
+            text=f"✔ {o} processados  ⏭ {s} ignorados  ✗ {e} erros"))
         self.is_running = False
 
         # Exportar CSV — abre diálogo na thread principal após liberar botão
