@@ -3,7 +3,7 @@ name: CD — Release Automático
 on:
   push:
     tags:
-      - "v*.*.*"   # dispara em tags como v1.0.0, v1.2.3, etc.
+      - "v*.*.*" # dispara em tags como v1.0.0, v1.2.3, etc.
 
 jobs:
   release:
@@ -14,7 +14,8 @@ jobs:
       - name: Checkout do código
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # necessário para pegar o histórico completo
+          fetch-depth: 0       # necessário para histórico completo
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configurar Python 3.11
         uses: actions/setup-python@v5
@@ -27,16 +28,21 @@ jobs:
           pip install mutagen soundfile cffi audioread
           pip install --no-deps librosa
           pip install audioread decorator joblib numpy packaging pooch \
-                      scikit-learn scipy soxr typing_extensions lazy_loader msgpack
+            scikit-learn scipy soxr typing_extensions lazy_loader msgpack
 
-      - name: Verificar versão da tag
+      # ── Extrai versão da tag (ex: v1.6.3 → VERSION=v1.6.3, VERSION_NUM=1.6.3)
+      - name: Extrair versão da tag
         id: tag_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/}"
+          VERSION_NUM="${VERSION#v}"
+          echo "VERSION=${VERSION}"         >> $GITHUB_OUTPUT
+          echo "VERSION_NUM=${VERSION_NUM}" >> $GITHUB_OUTPUT
 
+      # ── Gera changelog com commits desde a tag anterior
       - name: Gerar changelog automático
         id: changelog
         run: |
-          # Pega os commits desde a última tag
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           if [ -z "$PREV_TAG" ]; then
             COMMITS=$(git log --oneline --pretty=format:"- %s" | head -20)
@@ -44,20 +50,55 @@ jobs:
             COMMITS=$(git log ${PREV_TAG}..HEAD --oneline --pretty=format:"- %s")
           fi
           echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMITS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS"     >> $GITHUB_OUTPUT
+          echo "EOF"          >> $GITHUB_OUTPUT
 
-      - name: Empacotar arquivos da release
+      # ── Empacota o ZIP com nome FIXO (sem versão no nome do arquivo)
+      #    Isso permite usar o link permanente /releases/latest/download/bpm-tagger.zip
+      - name: Empacotar ZIP com nome fixo
         run: |
           mkdir -p release_package
-          cp bpm_tagger.py release_package/
-          cp bpm_tagger_app.py release_package/
-          cp requirements.txt release_package/
-          cp README.md release_package/
+          cp bpm_tagger.py      release_package/
+          cp bpm_tagger_app.py  release_package/
+          cp requirements.txt   release_package/
+          cp README.md          release_package/
           cp "BPM Tagger.command" release_package/ 2>/dev/null || true
           cd release_package
+          # Arquivo com versão (histórico) + alias fixo (link permanente)
           zip -r ../bpm-tagger-${{ steps.tag_version.outputs.VERSION }}.zip .
+          cp ../bpm-tagger-${{ steps.tag_version.outputs.VERSION }}.zip ../bpm-tagger.zip
 
+      # ── Atualiza automaticamente os links de download no README antes do release
+      - name: Atualizar links de download no README
+        run: |
+          VERSION="${{ steps.tag_version.outputs.VERSION }}"
+          VERSION_NUM="${{ steps.tag_version.outputs.VERSION_NUM }}"
+
+          # Atualiza link do ZIP versionado
+          sed -i "s|bpm-tagger-v[0-9]*\.[0-9]*\.[0-9]*\.zip|bpm-tagger-${VERSION}.zip|g" README.md
+
+          # Atualiza link do DMG versionado (ex: BPM-Tagger-1.6.1.dmg → BPM-Tagger-1.6.3.dmg)
+          sed -i "s|BPM-Tagger-[0-9]*\.[0-9]*\.[0-9]*\.dmg|BPM-Tagger-${VERSION_NUM}.dmg|g" README.md
+
+          # Atualiza badge de versão se existir (ex: version-v1.6.2-blue → version-v1.6.3-blue)
+          sed -i "s|version-v[0-9]*\.[0-9]*\.[0-9]*-|version-${VERSION}-|g" README.md
+
+          echo "README atualizado para ${VERSION}"
+          grep -n "bpm-tagger\|BPM-Tagger" README.md || true
+
+      # ── Faz commit do README atualizado de volta para main
+      - name: Commit README atualizado
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          # Commita apenas se houver mudanças reais
+          git diff --staged --quiet || git commit -m "chore: atualizar links de download para ${{ steps.tag_version.outputs.VERSION }} [skip ci]"
+          git push origin HEAD:main || echo "Nada a fazer — README já estava atualizado"
+
+      # ── Publica a release com DOIS arquivos:
+      #    1. bpm-tagger-vX.Y.Z.zip  → link histórico (específico da versão)
+      #    2. bpm-tagger.zip          → link permanente (sempre a última versão)
       - name: Criar Release no GitHub
         uses: softprops/action-gh-release@v2
         with:
@@ -83,6 +124,7 @@ jobs:
 
           files: |
             bpm-tagger-${{ steps.tag_version.outputs.VERSION }}.zip
+            bpm-tagger.zip
           draft: false
           prerelease: false
         env:

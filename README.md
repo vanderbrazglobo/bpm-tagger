@@ -22,14 +22,14 @@ Disponível em dois modos: **app desktop com interface gráfica** e **script de 
 
 ---
 
-## 📦 Download
+## 📥 Download
 
 | Plataforma | Arquivo | Tamanho |
 |---|---|---|
-| macOS (instalador) | [⬇️ BPM-Tagger-1.6.1.dmg](https://github.com/vanderbrazglobo/bpm-tagger/releases/download/v1.6.2/BPM-Tagger-1.6.1.dmg) | 115 KB |
-| macOS / Linux (zip) | [⬇️ bpm-tagger-v1.4.2.zip](https://github.com/vanderbrazglobo/bpm-tagger/releases/download/v1.6.1/bpm-tagger-v1.6.1.zip) | 11 KB |
+| macOS (instalador) | [⬇️ BPM-Tagger.dmg](https://github.com/vanderbrazglobo/bpm-tagger/releases/latest/download/BPM-Tagger.dmg) | ~115 KB |
+| macOS / Linux (zip) | [⬇️ bpm-tagger.zip](https://github.com/vanderbrazglobo/bpm-tagger/releases/latest/download/bpm-tagger.zip) | ~12 KB |
 
-Ou acesse todas as versões: [Releases](https://github.com/vanderbrazglobo/bpm-tagger/releases)
+> Ou acesse todas as versões: [Releases](https://github.com/vanderbrazglobo/bpm-tagger/releases)
 
 ---
 
