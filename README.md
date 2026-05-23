@@ -155,6 +155,26 @@ Depois: musica_128BPM_Am.mp3
 
 ---
 
+
+## ⚠️ Aviso de segurança macOS (Gatekeeper)
+
+Ao abrir o app pela primeira vez, o macOS pode exibir:
+> *"A Apple não pôde verificar se o item BPM Tagger está livre de algum malware..."*
+
+Isso acontece porque o app não está assinado com certificado Apple Developer.
+Para abrir mesmo assim:
+
+1. **Clique com botão direito** no BPM Tagger.app
+2. Clique em **"Abrir"**
+3. Na janela que aparecer, clique em **"Abrir"**
+
+Ou via terminal:
+```bash
+xattr -d com.apple.quarantine "/Applications/BPM Tagger.app"
+```
+
+---
+
 ## 🤝 Contribuindo
 
 Consulte o guia completo em [CONTRIBUTING.md](CONTRIBUTING.md).
