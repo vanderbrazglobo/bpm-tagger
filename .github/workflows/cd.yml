@@ -39,6 +39,34 @@ jobs:
           echo "VERSION=${VERSION}"         >> $GITHUB_OUTPUT
           echo "VERSION_NUM=${VERSION_NUM}" >> $GITHUB_OUTPUT
 
+      # ── Verifica se o DMG foi atualizado para esta versão
+      #    Compara a versão da tag com a versão registrada em DMG_VERSION (arquivo de controle)
+      #    Se o DMG estiver desatualizado, a release é publicada com aviso no corpo
+      - name: Verificar se DMG está atualizado
+        id: dmg_check
+        run: |
+          VERSION_NUM="${{ steps.tag_version.outputs.VERSION_NUM }}"
+
+          # Lê a versão do DMG registrada no arquivo de controle (se existir)
+          if [ -f "DMG_VERSION" ]; then
+            DMG_VERSION=$(cat DMG_VERSION | tr -d '[:space:]')
+          else
+            DMG_VERSION="desconhecida"
+          fi
+
+          echo "Versão da release : ${VERSION_NUM}"
+          echo "Versão do DMG     : ${DMG_VERSION}"
+
+          if [ "$DMG_VERSION" = "$VERSION_NUM" ]; then
+            echo "DMG_OK=true"      >> $GITHUB_OUTPUT
+            echo "DMG_WARNING="     >> $GITHUB_OUTPUT
+            echo "✅ DMG está atualizado para v${VERSION_NUM}"
+          else
+            echo "DMG_OK=false"     >> $GITHUB_OUTPUT
+            echo "DMG_WARNING=⚠️ **ATENÇÃO:** O instalador macOS (DMG) ainda está na versão \`${DMG_VERSION}\` e não foi atualizado para \`${VERSION_NUM}\`. Faça o build do DMG no macOS e faça o upload manual do arquivo \`BPM-Tagger.dmg\` nesta release." >> $GITHUB_OUTPUT
+            echo "⚠️  DMG desatualizado! DMG=${DMG_VERSION} | Release=${VERSION_NUM}"
+          fi
+
       # ── Gera changelog com commits desde a tag anterior
       - name: Gerar changelog automático
         id: changelog
@@ -111,6 +139,8 @@ jobs:
             ${{ steps.changelog.outputs.COMMITS }}
 
             ---
+
+            ${{ steps.dmg_check.outputs.DMG_WARNING }}
 
             ### 📦 Instalação
 
