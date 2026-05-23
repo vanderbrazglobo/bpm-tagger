@@ -3,7 +3,7 @@ name: CD — Release Automático
 on:
   push:
     tags:
-      - "v*.*.*"   # dispara em tags como v1.0.0, v1.2.3, etc.
+      - "v*.*.*"
 
 jobs:
   release:
@@ -14,7 +14,7 @@ jobs:
       - name: Checkout do código
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # necessário para pegar o histórico completo
+          fetch-depth: 0
 
       - name: Configurar Python 3.11
         uses: actions/setup-python@v5
@@ -29,14 +29,22 @@ jobs:
           pip install audioread decorator joblib numpy packaging pooch \
                       scikit-learn scipy soxr typing_extensions lazy_loader msgpack
 
-      - name: Verificar versão da tag
+      - name: Obter versão da tag
         id: tag_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Obter versão do DMG
+        id: dmg_version
+        run: |
+          if [ -f DMG_VERSION ]; then
+            echo "DMG_VERSION=$(cat DMG_VERSION)" >> $GITHUB_OUTPUT
+          else
+            echo "DMG_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Gerar changelog automático
         id: changelog
         run: |
-          # Pega os commits desde a última tag
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           if [ -z "$PREV_TAG" ]; then
             COMMITS=$(git log --oneline --pretty=format:"- %s" | head -20)
@@ -55,6 +63,7 @@ jobs:
           cp requirements.txt release_package/
           cp README.md release_package/
           cp "BPM Tagger.command" release_package/ 2>/dev/null || true
+          [ -f assets/BPM_Tagger_Apresentacao.pdf ] && cp assets/BPM_Tagger_Apresentacao.pdf release_package/ || true
           cd release_package
           zip -r ../bpm-tagger-${{ steps.tag_version.outputs.VERSION }}.zip .
 
@@ -71,11 +80,12 @@ jobs:
 
             ---
 
-            ### 📦 Instalação
+            ### 📦 Download
 
-            1. Baixe o arquivo `bpm-tagger-${{ steps.tag_version.outputs.VERSION }}.zip`
-            2. Descompacte em qualquer pasta
-            3. Siga as instruções do `README.md`
+            | Plataforma | Arquivo |
+            |---|---|
+            | macOS (instalador) | [⬇️ BPM-Tagger-${{ steps.dmg_version.outputs.DMG_VERSION }}.dmg](https://github.com/vanderbrazglobo/bpm-tagger/releases/download/${{ steps.tag_version.outputs.VERSION }}/BPM-Tagger-${{ steps.dmg_version.outputs.DMG_VERSION }}.dmg) |
+            | macOS / Linux (zip) | [⬇️ bpm-tagger-${{ steps.tag_version.outputs.VERSION }}.zip](https://github.com/vanderbrazglobo/bpm-tagger/releases/download/${{ steps.tag_version.outputs.VERSION }}/bpm-tagger-${{ steps.tag_version.outputs.VERSION }}.zip) |
 
             ### Requisitos
             - Python 3.11 ([python.org](https://www.python.org/downloads/release/python-31110/))
@@ -85,5 +95,98 @@ jobs:
             bpm-tagger-${{ steps.tag_version.outputs.VERSION }}.zip
           draft: false
           prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-dmg:
+    name: 🍎 Build DMG (macOS)
+    runs-on: macos-latest
+    needs: release
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Obter versão da tag
+        id: tag_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Obter versão do DMG
+        id: dmg_version
+        run: |
+          if [ -f DMG_VERSION ]; then
+            echo "DMG_VERSION=$(cat DMG_VERSION)" >> $GITHUB_OUTPUT
+          else
+            echo "DMG_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Instalar create-dmg
+        run: brew install create-dmg
+
+      - name: Construir estrutura do app
+        run: |
+          APP="BPM Tagger.app"
+          mkdir -p "build_dmg/${APP}/Contents/MacOS"
+          mkdir -p "build_dmg/${APP}/Contents/Resources"
+
+          cp bpm_tagger_app.py "build_dmg/${APP}/Contents/MacOS/bpm_tagger_app.py"
+
+          cat > "build_dmg/${APP}/Contents/MacOS/BPM Tagger" << 'LAUNCHER'
+          #!/bin/bash
+          DIR="$(cd "$(dirname "$0")" && pwd)"
+          PYTHON=$(find ~/envs/bpm/bin -name "python3.11" 2>/dev/null | head -1)
+          if [ -z "$PYTHON" ]; then
+              osascript -e 'display alert "Python não encontrado" message "Instale o ambiente virtual conforme o README." as critical'
+              exit 1
+          fi
+          exec "$PYTHON" "${DIR}/bpm_tagger_app.py"
+          LAUNCHER
+          chmod +x "build_dmg/${APP}/Contents/MacOS/BPM Tagger"
+
+          cat > "build_dmg/${APP}/Contents/Info.plist" << PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleName</key><string>BPM Tagger</string>
+              <key>CFBundleExecutable</key><string>BPM Tagger</string>
+              <key>CFBundleIdentifier</key><string>com.vanderbraz.bpm-tagger</string>
+              <key>CFBundleVersion</key><string>${{ steps.dmg_version.outputs.DMG_VERSION }}</string>
+              <key>CFBundleShortVersionString</key><string>${{ steps.dmg_version.outputs.DMG_VERSION }}</string>
+              <key>CFBundlePackageType</key><string>APPL</string>
+              <key>NSHighResolutionCapable</key><true/>
+          </dict>
+          </plist>
+          PLIST
+
+      - name: Criar DMG
+        run: |
+          DMG_NAME="BPM-Tagger-${{ steps.dmg_version.outputs.DMG_VERSION }}.dmg"
+          create-dmg \
+            --volname "BPM Tagger ${{ steps.dmg_version.outputs.DMG_VERSION }}" \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --app-drop-link 450 180 \
+            "${DMG_NAME}" \
+            "build_dmg/" || true
+          ls -lh "${DMG_NAME}"
+          echo "DMG_NAME=${DMG_NAME}" >> $GITHUB_ENV
+
+      - name: Upload DMG na release
+        run: |
+          gh release upload ${{ steps.tag_version.outputs.VERSION }} \
+            "$DMG_NAME" \
+            --repo vanderbrazglobo/bpm-tagger \
+            --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload PDF na release
+        if: hashFiles('assets/BPM_Tagger_Apresentacao.pdf') != ''
+        run: |
+          gh release upload ${{ steps.tag_version.outputs.VERSION }} \
+            assets/BPM_Tagger_Apresentacao.pdf \
+            --repo vanderbrazglobo/bpm-tagger \
+            --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
