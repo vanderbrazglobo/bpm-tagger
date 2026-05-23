@@ -1,10 +1,6 @@
 # 🎵 BPM Tagger
 
-[![CI](https://github.com/vanderbrazglobo/bpm-tagger/actions/workflows/ci.yml/badge.svg)](https://github.com/vanderbrazglobo/bpm-tagger/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-31110/)
-[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey.svg)]()
-
+[![CI](https://github.com/vanderbrazglobo/bpm-tagger/actions/workflows/ci.yml/badge.svg)](https://github.com/vanderbrazglobo/bpm-tagger/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/vanderbrazglobo/bpm-tagger/blob/main/LICENSE) [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/release/python-31110/) [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/vanderbrazglobo/bpm-tagger/blob/main)
 
 > Detecta BPM e tom musical de arquivos de áudio e renomeia automaticamente.
 
@@ -15,21 +11,54 @@ Disponível em dois modos: **app desktop com interface gráfica** e **script de 
 ## 📸 Screenshots
 
 ### App principal
-![BPM Tagger App](assets/app_screenshot.png)
+
+[![BPM Tagger App](https://github.com/vanderbrazglobo/bpm-tagger/raw/main/assets/app_screenshot.png)](https://github.com/vanderbrazglobo/bpm-tagger/blob/main/assets/app_screenshot.png)
 
 ### Relatório CSV gerado
-![Relatório CSV](assets/csv_screenshot.png)
+
+[![Relatório CSV](https://github.com/vanderbrazglobo/bpm-tagger/raw/main/assets/csv_screenshot.png)](https://github.com/vanderbrazglobo/bpm-tagger/blob/main/assets/csv_screenshot.png)
 
 ---
 
 ## 📥 Download
 
-| Plataforma | Arquivo | Tamanho |
-|---|---|---|
-| macOS (instalador) | [⬇️ BPM-Tagger.dmg](https://github.com/vanderbrazglobo/bpm-tagger/releases/latest/download/BPM-Tagger.dmg) | ~115 KB |
-| macOS / Linux (zip) | [⬇️ bpm-tagger.zip](https://github.com/vanderbrazglobo/bpm-tagger/releases/latest/download/bpm-tagger.zip) | ~12 KB |
+| Plataforma          | Arquivo                                                                                                     | Tamanho |
+| ------------------- | ----------------------------------------------------------------------------------------------------------- | ------- |
+| macOS (instalador)  | [⬇️ BPM-Tagger.dmg](https://github.com/vanderbrazglobo/bpm-tagger/releases/latest/download/BPM-Tagger.dmg) | ~115 KB |
+| macOS / Linux (zip) | [⬇️ bpm-tagger.zip](https://github.com/vanderbrazglobo/bpm-tagger/releases/latest/download/bpm-tagger.zip) | ~12 KB  |
 
 > Ou acesse todas as versões: [Releases](https://github.com/vanderbrazglobo/bpm-tagger/releases)
+
+---
+
+## ⚠️ Aviso de segurança macOS (Gatekeeper)
+
+Ao abrir o app pela primeira vez, o macOS pode exibir:
+> *"A Apple não pôde verificar se o item BPM Tagger está livre de algum malware..."*
+
+Isso acontece porque o app não está assinado com certificado Apple Developer. **Não é malware** — é um app open source.
+
+### Se baixou o DMG:
+
+1. Monte o DMG e arraste o **BPM Tagger** para **Aplicativos**
+2. Abra o **Terminal** e rode:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/BPM Tagger.app"
+```
+
+3. Abra o app normalmente
+
+### Se baixou o ZIP:
+
+1. Descompacte e localize o arquivo `BPM Tagger.command`
+2. Abra o **Terminal** e rode:
+
+```bash
+xattr -dr com.apple.quarantine "/caminho/para/BPM Tagger.command"
+```
+
+Ou mais simples: **clique com botão direito** no arquivo → **Abrir** → **Abrir** na janela de aviso.
 
 ---
 
@@ -46,10 +75,11 @@ Disponível em dois modos: **app desktop com interface gráfica** e **script de 
 
 **Opção 1 — DMG (recomendado)**
 
-1. Baixe o arquivo `BPM-Tagger-1.6.0.dmg`
+1. Baixe o arquivo `BPM-Tagger.dmg`
 2. Abra o arquivo
 3. Arraste **BPM Tagger** para a pasta **Aplicativos**
-4. Abra e aproveite
+4. Se aparecer aviso do Gatekeeper, siga as instruções da seção acima
+5. Abra e aproveite
 
 **Opção 2 — ZIP**
 
@@ -132,13 +162,13 @@ Depois: musica_128BPM_Am.mp3
 
 ## ⚙️ Opções disponíveis
 
-| Opção | O que faz |
-|---|---|
-| **Modo simulação (dry-run)** | Mostra o que seria renomeado sem alterar nenhum arquivo. Sempre use antes de rodar de verdade. |
-| **Detectar tom musical (key)** | Identifica a tonalidade da música (ex: Am, C, F#) e adiciona ao nome. |
-| **Processar subpastas** | Varre todas as pastas recursivamente. |
-| **Exportar relatório CSV** | Salva um relatório com BPM, tom e formato de cada arquivo. |
-| **Formatos (MP3, FLAC, WAV...)** | Selecione quais tipos de arquivo serão processados. |
+| Opção                            | O que faz                                                                                      |
+| -------------------------------- | ---------------------------------------------------------------------------------------------- |
+| **Modo simulação (dry-run)**     | Mostra o que seria renomeado sem alterar nenhum arquivo. Sempre use antes de rodar de verdade. |
+| **Detectar tom musical (key)**   | Identifica a tonalidade da música (ex: Am, C, F#) e adiciona ao nome.                         |
+| **Processar subpastas**          | Varre todas as pastas recursivamente.                                                          |
+| **Exportar relatório CSV**       | Salva um relatório com BPM, tom e formato de cada arquivo.                                     |
+| **Formatos (MP3, FLAC, WAV...)** | Selecione quais tipos de arquivo serão processados.                                            |
 
 ---
 
@@ -155,29 +185,9 @@ Depois: musica_128BPM_Am.mp3
 
 ---
 
-
-## ⚠️ Aviso de segurança macOS (Gatekeeper)
-
-Ao abrir o app pela primeira vez, o macOS pode exibir:
-> *"A Apple não pôde verificar se o item BPM Tagger está livre de algum malware..."*
-
-Isso acontece porque o app não está assinado com certificado Apple Developer.
-Para abrir mesmo assim:
-
-1. **Clique com botão direito** no BPM Tagger.app
-2. Clique em **"Abrir"**
-3. Na janela que aparecer, clique em **"Abrir"**
-
-Ou via terminal:
-```bash
-xattr -d com.apple.quarantine "/Applications/BPM Tagger.app"
-```
-
----
-
 ## 🤝 Contribuindo
 
-Consulte o guia completo em [CONTRIBUTING.md](CONTRIBUTING.md).
+Consulte o guia completo em [CONTRIBUTING.md](https://github.com/vanderbrazglobo/bpm-tagger/blob/main/CONTRIBUTING.md).
 
 ---
 
