@@ -47,6 +47,10 @@ except ImportError:
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
+# ── SEGURANÇA — importa validador ────────────────────────────────────────────
+from file_security import SecurityValidator, security_summary
+_security = SecurityValidator()
+
 # ── Constantes ───────────────────────────────────────────────────────────────
 SUPPORTED_FORMATS = {
     "mp3":  "MP3",
@@ -97,7 +101,6 @@ def detect_bpm_and_key(path: Path, detect_key: bool = False, detect_energy: bool
         chroma = librosa.feature.chroma_cqt(y=y, sr=sr)
         chroma_mean = np.mean(chroma, axis=1)
 
-        # Correlação com perfis Major e Minor para cada tonalidade
         best_score = -np.inf
         best_key = "C"
         best_mode = "maj"
@@ -366,16 +369,17 @@ class BPMTaggerApp(ctk.CTk):
 
     def _log(self, msg, tag="info"):
         colors = {
-            "ok":    "#34d399",
-            "error": "#f87171",
-            "skip":  "#60a5fa",
-            "bpm":   "#fbbf24",
-            "key":    "#c084fc",
-            "energy": "#34d399",
-            "info":  "#c8d8e8",
-            "sep":   "#2d3a4a",
-            "head":  "#818cf8",
-            "csv":   "#34d399",
+            "ok":       "#34d399",
+            "error":    "#f87171",
+            "skip":     "#60a5fa",
+            "bpm":      "#fbbf24",
+            "key":      "#c084fc",
+            "energy":   "#34d399",
+            "info":     "#c8d8e8",
+            "sep":      "#2d3a4a",
+            "head":     "#818cf8",
+            "csv":      "#34d399",
+            "blocked":  "#f87171",   # ← novo: arquivos bloqueados por segurança
         }
         self.log_box.configure(state="normal")
         self.log_box.insert("end", msg + "\n")
@@ -395,7 +399,6 @@ class BPMTaggerApp(ctk.CTk):
             messagebox.showerror("Erro", f"Pasta não encontrada:\n{folder}")
             return
 
-        # Pelo menos um formato selecionado
         selected_fmts = self._get_formats()
         if not selected_fmts:
             messagebox.showwarning("Atenção", "Selecione pelo menos um formato de áudio.")
@@ -407,8 +410,6 @@ class BPMTaggerApp(ctk.CTk):
         self.is_running = True
         self._csv_rows = []
         self.run_btn.configure(state="disabled", text="⏳  Processando...")
-        self.after(0, lambda: self.progress_bar.set(0))
-        self.after(0, lambda: self.progress_label.configure(text=""))
         self.after(0, lambda: self.progress_bar.set(0))
         self.after(0, lambda: self.progress_label.configure(text=""))
         self._clear_log()
@@ -458,7 +459,7 @@ class BPMTaggerApp(ctk.CTk):
         self._log(f"  {len(files)} arquivo(s) encontrado(s)\n", "info")
         self.after(0, lambda: self._set_status(f"Processando {len(files)} arquivo(s)..."))
 
-        ok = skip = error = 0
+        ok = skip = error = blocked = 0
 
         for f in files:
             stem = f.stem
@@ -468,6 +469,15 @@ class BPMTaggerApp(ctk.CTk):
                 self._log(f"⏭  SKIP   {f.name}", "skip")
                 skip += 1
                 continue
+
+            # ── VALIDAÇÃO DE SEGURANÇA ────────────────────────────────────
+            safe, reason = _security.validate(f)
+            if not safe:
+                self._log(security_summary(f, reason), "blocked")
+                blocked += 1
+                error += 1
+                continue
+            # ─────────────────────────────────────────────────────────────
 
             self._log(f"🔍  {f.name}", "info")
             self.after(0, lambda n=f.name: self._set_status(f"Analisando: {n}"))
@@ -483,13 +493,9 @@ class BPMTaggerApp(ctk.CTk):
             idx = files.index(f) + 1
             progress = idx / len(files)
             self.after(0, lambda v=progress: self.progress_bar.set(v))
-            self.after(0, lambda i=idx, t=len(files): self.progress_label.configure(text=f"Processando {i} de {t} arquivos..."))
-            # Atualiza barra de progresso
-            idx = files.index(f) + 1
-            progress = idx / len(files)
-            self.after(0, lambda v=progress: self.progress_bar.set(v))
             self.after(0, lambda i=idx, t=len(files): self.progress_label.configure(
                 text=f"Processando {i} de {t} arquivos..."))
+
             if do_key and key:
                 self._log(f"   Tom: {key}", "key")
             if do_energy and energy:
@@ -535,6 +541,10 @@ class BPMTaggerApp(ctk.CTk):
                 self._log(f"   ✗ Falha: {e}", "error")
                 error += 1
 
+        # ── Resumo com bloqueados ─────────────────────────────────────────
+        if blocked:
+            self._log(f"\n  🔒 {blocked} arquivo(s) bloqueado(s) por segurança", "blocked")
+
         self._finish(ok, skip, error, dry, folder, do_csv)
 
     def _finish(self, ok, skip, error, dry, folder=None, do_csv=False):
@@ -554,7 +564,6 @@ class BPMTaggerApp(ctk.CTk):
             text=f"✔ {o} processados  ⏭ {s} ignorados  ✗ {e} erros"))
         self.is_running = False
 
-        # Exportar CSV — abre diálogo na thread principal após liberar botão
         if do_csv and self._csv_rows:
             self.after(200, lambda: self._save_csv(folder))
 
