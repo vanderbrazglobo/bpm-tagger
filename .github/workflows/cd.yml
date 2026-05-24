@@ -200,15 +200,14 @@ jobs:
     name: 🔄 Sincronizar develop com main
     runs-on: ubuntu-latest
     needs: [release, build-dmg]
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout completo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # Usa um PAT para poder fazer push protegido em develop.
-          # Crie o secret SYNC_TOKEN com um Personal Access Token
-          # com permissão contents: write.
           token: ${{ secrets.SYNC_TOKEN }}
 
       - name: Configurar git
@@ -222,6 +221,7 @@ jobs:
           git checkout develop
           git merge origin/main --no-ff \
             -m "chore: sync main ${{ github.ref_name }} into develop [skip ci]"
+          git remote set-url origin https://x-access-token:${{ secrets.SYNC_TOKEN }}@github.com/vanderbrazglobo/bpm-tagger.git
           git push origin develop
 
       - name: Resultado
